@@ -23,10 +23,12 @@
  * or similar, whose standard output would have a null-delimited sequence of
  * paths to devices in /sys/devices which satisfy the filter predicates.
  *
- * Alternatively, you could use this generated string literal as a format
+ * Alternatively, you could replace SUBSYSTEM with SUBSYSTEMF and SYSATTR with
+ * SYSATTRF, which would generate a string literal suitable for use as a format
  * string for sprintf(3) or similar. This would allow you to offer the user a
  * choice of manufacturer (i.e., SYSATTR("manufacturer", "%s")), or allow you
  * to override "/sys" with "$SYSFS_PATH" as suggested in the kernel docs.
+ *
  *
  * A Parsing Expression Grammar for this EDSL is given here:
  *
@@ -50,6 +52,10 @@
  * SubsystemFilter <- 'SUBSYSTEM' '(' Subsystem ')'
  * SysAttrFilter <- 'SYSATTR' '(' SysAttrKey ',' SysAttrValue ')'
  *
+ *   Note that SUBSYSTEM and SYSATTR also come in SUBSYSTEMF and SYSATTRF
+ *   variants for use with sprintf(3) and family (literal '%'s in the
+ *   generated string literal are escaped with another '%').
+ *
  * Subsystem <- a C string literal
  *              examples: "usb", "pci", "tty", etc.
  *              for a complete list, try:
@@ -61,14 +67,15 @@
  *
  * SysAttrValue <- a C string literal
  *                 value to match with the data in an attribute file
- *
  */
 
 #define FROM(x)       " find " x " -maxdepth 0 -print0 "
 #define SELECT        " | xargs -0 -I}{ find '}{' "
 #define AND           SELECT " -maxdepth 1 "
 #define SUBSYSTEM(x)  " -type l -name subsystem -lname \\*/" x " -printf '%h\\0' "
+#define SUBSYSTEMF(x) " -type l -name subsystem -lname \\*/" x " -printf '%%h\\0' "
 #define SYSATTR(x,y)  " -type f -name " x " -execdir grep -q " y " '{}' \\; -printf '%h\\0' "
+#define SYSATTRF(x,y) " -type f -name " x " -execdir grep -q " y " '{}' \\; -printf '%%h\\0' "
 #define FIRST         " -quit "
 
 #define SELECTUP      " | xargs -0 -I}{ sh -c 'x=\"}{\"; while [ \"/\" != \"$x\" ]; do dirname -z \"$x\"; x=$(dirname -z \"$x\"); done' " AND
